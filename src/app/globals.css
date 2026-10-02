@@ -1,0 +1,361 @@
+:root {
+  --fond: #f2f4f3;
+  --surface: #ffffff;
+  --encre: #18211d;
+  --doux: #5c6a63;
+  --trait: #d9e0dc;
+  --accent: #1d6b58;
+  --accent-encre: #ffffff;
+  --a: #1f7a4d;
+  --a-fond: #e2f2e9;
+  --b: #9a6413;
+  --b-fond: #f7ecd9;
+  --x: #7d8581;
+  --x-fond: #e8ebe9;
+  --erreur: #a3352b;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --fond: #121715;
+    --surface: #1a211e;
+    --encre: #e4ebe7;
+    --doux: #94a29b;
+    --trait: #2c3631;
+    --accent: #4fb596;
+    --accent-encre: #0d1311;
+    --a: #6fd09c;
+    --a-fond: #1c3527;
+    --b: #e2b064;
+    --b-fond: #3a2d17;
+    --x: #8c9590;
+    --x-fond: #252c29;
+    --erreur: #f08a7f;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --fond: #121715;
+  --surface: #1a211e;
+  --encre: #e4ebe7;
+  --doux: #94a29b;
+  --trait: #2c3631;
+  --accent: #4fb596;
+  --accent-encre: #0d1311;
+  --a: #6fd09c;
+  --a-fond: #1c3527;
+  --b: #e2b064;
+  --b-fond: #3a2d17;
+  --x: #8c9590;
+  --x-fond: #252c29;
+  --erreur: #f08a7f;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--encre);
+  font: 15px/1.5 var(--font-sans), system-ui, sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+.page {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 28px 16px 64px;
+  display: grid;
+  gap: 18px;
+}
+
+.entete {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.sous-titre {
+  margin: 4px 0 0;
+  color: var(--doux);
+  font-size: 13px;
+  font-family: var(--font-mono), monospace;
+}
+
+.erreur {
+  color: var(--erreur);
+  font-size: 13px;
+  white-space: pre-line;
+  margin: 6px 0 0;
+}
+
+.vide {
+  color: var(--doux);
+}
+
+/* Boutons */
+.bouton {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  padding: 7px 14px;
+  border: 1px solid var(--trait);
+  background: var(--surface);
+  color: var(--encre);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+.bouton:hover {
+  border-color: var(--doux);
+}
+.bouton:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.bouton.principal {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-encre);
+}
+.bouton.discret {
+  padding: 2px 8px;
+  font-size: 12px;
+}
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Ajout d'une offre */
+.ajout > summary {
+  list-style: none;
+  width: fit-content;
+}
+.ajout > summary::-webkit-details-marker {
+  display: none;
+}
+.ajout[open] > .formulaire {
+  margin-top: 12px;
+  background: var(--surface);
+  border: 1px solid var(--trait);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.formulaire {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+}
+.formulaire label {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--doux);
+}
+.formulaire .large {
+  grid-column: span 2;
+}
+.formulaire .pleine {
+  grid-column: 1 / -1;
+}
+input,
+select,
+textarea {
+  font: inherit;
+  font-size: 14px;
+  color: var(--encre);
+  background: var(--fond);
+  border: 1px solid var(--trait);
+  border-radius: 6px;
+  padding: 7px 9px;
+  width: 100%;
+}
+textarea {
+  resize: vertical;
+}
+.libelle-ligne {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Onglets et filtres */
+.onglets {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--trait);
+  overflow-x: auto;
+}
+.onglet {
+  padding: 8px 12px;
+  text-decoration: none;
+  color: var(--doux);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+}
+.onglet.actif {
+  color: var(--encre);
+  border-bottom-color: var(--accent);
+  font-weight: 500;
+}
+.compte {
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  margin-left: 4px;
+}
+.filtres {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.puce {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--trait);
+  text-decoration: none;
+  color: var(--doux);
+}
+.puce.active {
+  color: var(--encre);
+  border-color: var(--encre);
+}
+
+/* Cartes */
+.liste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.carte {
+  background: var(--surface);
+  border: 1px solid var(--trait);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+}
+.carte-haut {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: start;
+}
+.niveau {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-mono), monospace;
+  font-weight: 500;
+  background: var(--x-fond);
+  color: var(--x);
+}
+.carte[data-niveau="A"] .niveau {
+  background: var(--a-fond);
+  color: var(--a);
+}
+.carte[data-niveau="B"] .niveau {
+  background: var(--b-fond);
+  color: var(--b);
+}
+.carte h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+.carte h2 a {
+  text-decoration: none;
+}
+.carte h2 a:hover {
+  text-decoration: underline;
+}
+.meta {
+  margin: 2px 0 0;
+  color: var(--doux);
+  font-size: 13px;
+}
+.carte-coin {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--doux);
+  white-space: nowrap;
+}
+.source {
+  font-family: var(--font-mono), monospace;
+}
+.raison,
+.prochaine {
+  margin: 0;
+  font-size: 14px;
+}
+.prochaine {
+  color: var(--b);
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.plus > summary {
+  cursor: pointer;
+  color: var(--doux);
+  font-size: 13px;
+}
+.plus[open] > summary {
+  margin-bottom: 12px;
+}
+.description {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--trait);
+  white-space: pre-line;
+  font-size: 13px;
+  color: var(--doux);
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+@media (max-width: 560px) {
+  .formulaire .large {
+    grid-column: 1 / -1;
+  }
+  .carte-haut {
+    grid-template-columns: auto 1fr;
+  }
+  .carte-coin {
+    grid-column: 2;
+    justify-items: start;
+    display: flex;
+    gap: 8px;
+  }
+}
