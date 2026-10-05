@@ -1,6 +1,6 @@
 import "server-only";
 import { MOTS_CLES } from "@/lib/profil";
-import { noterEvenement, noterOffre } from "@/lib/notation";
+import { LimiteOpenAI, noterEvenement, noterOffre } from "@/lib/notation";
 import { rechercherAdzuna } from "@/lib/sources/adzuna";
 import { rechercherApify } from "@/lib/sources/apify";
 import { rechercherEvenements } from "@/lib/sources/evenements";
@@ -86,9 +86,10 @@ async function enregistrerEvenements(promesse: Promise<PromiseSettledResult<Awai
     .limit(300);
   const file = [...(attente ?? [])];
   let notes = 0;
+  let limite = false;
   await Promise.all(
     Array.from({ length: 6 }, async () => {
-      for (let e = file.shift(); e && Date.now() < finAvant; e = file.shift()) {
+      for (let e = file.shift(); e && !limite && Date.now() < finAvant; e = file.shift()) {
         try {
           const n = await noterEvenement(e);
           await supabase
@@ -97,6 +98,10 @@ async function enregistrerEvenements(promesse: Promise<PromiseSettledResult<Awai
             .eq("id", e.id);
           notes++;
         } catch (err) {
+          if (err instanceof LimiteOpenAI) {
+            limite = true;
+            break;
+          }
           erreurs.push(`Notation événement « ${e.titre} » : ${err instanceof Error ? err.message : String(err)}`);
         }
       }
@@ -109,9 +114,11 @@ export async function noterEnAttente(erreurs: string[] = [], finAvant = Date.now
   const supabase = db();
   const echecs = new Set<string>();
   let notees = 0;
+  let limite = false;
 
   // Par lots de 60, 6 notations en parallèle, tant qu'il reste du temps.
-  while (Date.now() < finAvant - 20_000) {
+  // notation.ts espace déjà les appels ; si OpenAI refuse malgré tout, on s'arrête et le reste attend le prochain passage.
+  while (Date.now() < finAvant - 20_000 && !limite) {
     const { data: attente } = await supabase
       .from("offres")
       .select("id, poste, entreprise, lieu, contrat, salaire, description")
@@ -123,11 +130,15 @@ export async function noterEnAttente(erreurs: string[] = [], finAvant = Date.now
 
     await Promise.all(
       Array.from({ length: 6 }, async () => {
-        for (let o = file.shift(); o; o = file.shift()) {
+        for (let o = file.shift(); o && !limite && Date.now() < finAvant - 15_000; o = file.shift()) {
           try {
             await noterUne(o as Offre);
             notees++;
           } catch (e) {
+            if (e instanceof LimiteOpenAI) {
+              limite = true;
+              break;
+            }
             echecs.add(o.id);
             erreurs.push(`Notation « ${o.poste} » : ${e instanceof Error ? e.message : String(e)}`);
           }
@@ -135,6 +146,9 @@ export async function noterEnAttente(erreurs: string[] = [], finAvant = Date.now
       }),
     );
   }
+
+  const { count } = await supabase.from("offres").select("id", { count: "exact", head: true }).is("niveau", null);
+  if (count) erreurs.push(`${count} offres pas encore notées${limite ? " (limite OpenAI atteinte)" : " (temps écoulé)"} : elles le seront au prochain passage.`);
   return notees;
 }
 

@@ -29,12 +29,70 @@ const SCHEMA = {
   },
 } as const;
 
+// ── Appels OpenAI espacés ──────────────────────────────────────────────────
+// Le compte a droit à 200 000 tokens par minute ; une offre en consomme environ 3 000.
+// On estime chaque appel et on attend tant que la minute écoulée dépasserait 150 000 tokens.
+const FENETRE_MS = 60_000;
+const BUDGET_TOKENS = 150_000;
+const consommes: { t: number; n: number }[] = [];
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function attendreBudget(n: number) {
+  for (;;) {
+    const maintenant = Date.now();
+    while (consommes.length && maintenant - consommes[0].t > FENETRE_MS) consommes.shift();
+    const total = consommes.reduce((s, c) => s + c.n, 0);
+    if (total + n <= BUDGET_TOKENS) {
+      consommes.push({ t: maintenant, n });
+      return;
+    }
+    await pause(Math.max(250, FENETRE_MS - (maintenant - consommes[0].t)));
+  }
+}
+
+// « 1.2s », « 120ms », « 1m30s » → millisecondes.
+function enMs(v: string | null): number | null {
+  if (!v) return null;
+  if (/^\d+(\.\d+)?$/.test(v)) return Number(v) * 1000; // retry-after en secondes
+  let ms = 0;
+  for (const [, n, u] of v.matchAll(/(\d+(?:\.\d+)?)(ms|s|m|h)/g)) ms += Number(n) * { ms: 1, s: 1000, m: 60_000, h: 3_600_000 }[u as "ms"];
+  return ms || null;
+}
+
+export class LimiteOpenAI extends Error {}
+
+async function appelerOpenAI<T>(messages: { role: string; content: string }[], nom: string, schema: object): Promise<T> {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) throw new Error("OPENAI_API_KEY manquant");
+  const estimation = Math.ceil(JSON.stringify(messages).length / 3) + 600;
+
+  for (let essai = 0; ; essai++) {
+    await attendreBudget(estimation);
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
+        messages,
+        response_format: { type: "json_schema", json_schema: { name: nom, strict: true, schema } },
+      }),
+      cache: "no-store",
+    });
+    if (res.status === 429) {
+      if (essai >= 4) throw new LimiteOpenAI("OpenAI : limite atteinte");
+      const attente = enMs(res.headers.get("retry-after")) ?? enMs(res.headers.get("x-ratelimit-reset-tokens")) ?? 2000 * 2 ** essai;
+      await pause(Math.min(Math.max(attente, 1000), 20_000) + Math.random() * 500);
+      continue;
+    }
+    if (!res.ok) throw new Error(`OpenAI : erreur ${res.status}`);
+    const data = (await res.json()) as { choices: { message: { content: string } }[] };
+    return JSON.parse(data.choices[0].message.content) as T;
+  }
+}
+
 export async function noterOffre(o: Pick<Offre, "poste" | "entreprise" | "lieu" | "contrat" | "salaire" | "description">): Promise<Notation> {
   const rapide = filtreRapide(o.poste);
   if (rapide) return rapide;
-
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) throw new Error("OPENAI_API_KEY manquant");
 
   const offreTexte = [
     `Poste : ${o.poste}`,
@@ -42,28 +100,20 @@ export async function noterOffre(o: Pick<Offre, "poste" | "entreprise" | "lieu" 
     `Lieu : ${o.lieu ?? "inconnu"}`,
     `Contrat : ${o.contrat ?? "inconnu"}`,
     `Salaire : ${o.salaire ?? "non indiqué"}`,
-    `Description :\n${(o.description ?? "(aucune)").slice(0, 6000)}`,
+    `Description :\n${(o.description ?? "(aucune)").slice(0, 4500)}`,
   ].join("\n");
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
-      messages: [
+  return appelerOpenAI<Notation>(
+      [
         {
           role: "system",
           content: `Tu tries des offres d'emploi pour un candidat. Note A (poste idéal), B (ça colle bien) ou X (à écarter), selon ce profil et cette stratégie. Écarte (X) ce qui est clairement hors cible (autre métier, séniorité, lieu).\nTaille d'entreprise : la cible, ce sont les petites structures (startups early-stage, PME, petites agences, moins de 200 personnes environ). Mets X pour les grands groupes, les entreprises du CAC 40 / SBF 120 et leurs filiales, les grands cabinets de conseil et ESN, et les scale-ups très connues qui reçoivent des centaines de candidatures (ex. Pennylane, sunday, Qonto, Alan, Doctolib, BlaBlaCar). Si la taille est inconnue, juge sur le nom et la description, sans écarter par défaut.\nType de contrat : CDI, CDD, freelance, stage et alternance sont tous acceptés. Un stage ou une alternance qui colle très bien au métier visé vaut A ou B comme un CDI ; ne l'écarte pas pour son contrat. Indique le type de contrat dans la raison.\nSi l'intitulé fait partie des postes A ou B visés et que le lieu convient, ne l'écarte pas faute de détails : mets au moins B. Les 3 lignes sont à la première personne et n'utilisent que les faits du profil (pas d'outil, de chiffre ou de mission inventés). N'invente aucun fait sur le candidat.\n\n${PROFIL}`,
         },
         { role: "user", content: offreTexte },
       ],
-      response_format: { type: "json_schema", json_schema: { name: "notation", strict: true, schema: SCHEMA } },
-    }),
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`OpenAI : erreur ${res.status}`);
-  const data = (await res.json()) as { choices: { message: { content: string } }[] };
-  return JSON.parse(data.choices[0].message.content) as Notation;
+      "notation",
+      SCHEMA,
+  );
 }
 
 // ── Événements France Travail ──────────────────────────────────────────────
@@ -81,9 +131,6 @@ const SCHEMA_EVENEMENT = {
 } as const;
 
 export async function noterEvenement(e: { titre: string; type: string | null; organisateur: string | null; modalites: string[] | null; description: string | null }): Promise<NotationEvenement> {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) throw new Error("OPENAI_API_KEY manquant");
-
   const texte = [
     `Titre : ${e.titre}`,
     `Type : ${e.type ?? "inconnu"}`,
@@ -92,12 +139,8 @@ export async function noterEvenement(e: { titre: string; type: string | null; or
     `Description :\n${(e.description ?? "(aucune)").slice(0, 4000)}`,
   ].join("\n");
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
-      messages: [
+  return appelerOpenAI<NotationEvenement>(
+      [
         {
           role: "system",
           content: `Tu tries des événements emploi France Travail (Île-de-France) pour un candidat. Note :
@@ -110,11 +153,7 @@ ${PROFIL}`,
         },
         { role: "user", content: texte },
       ],
-      response_format: { type: "json_schema", json_schema: { name: "notation_evenement", strict: true, schema: SCHEMA_EVENEMENT } },
-    }),
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`OpenAI : erreur ${res.status}`);
-  const data = (await res.json()) as { choices: { message: { content: string } }[] };
-  return JSON.parse(data.choices[0].message.content) as NotationEvenement;
+      "notation_evenement",
+      SCHEMA_EVENEMENT,
+  );
 }
