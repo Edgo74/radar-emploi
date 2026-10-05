@@ -26,7 +26,7 @@ create table if not exists public.offres (
 
   -- suivi
   etape            text not null default 'nouvelle'
-                   check (etape in ('nouvelle', 'a_postuler', 'postulee', 'relancee', 'entretien', 'refus', 'ecartee')),
+                   check (etape in ('nouvelle', 'a_postuler', 'postulee', 'relancee', 'entretien', 'refus', 'ecartee', 'pas_interessant')),
   contact          text,
   postulee_le      date,
   prochaine_action text,

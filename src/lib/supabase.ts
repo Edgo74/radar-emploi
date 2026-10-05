@@ -11,7 +11,7 @@ export function db() {
 
 export type Source = "france_travail" | "adzuna" | "linkedin" | "wttj" | "autre";
 export type Niveau = "A" | "B" | "X";
-export type Etape = "nouvelle" | "a_postuler" | "postulee" | "relancee" | "entretien" | "refus" | "ecartee";
+export type Etape = "nouvelle" | "a_postuler" | "postulee" | "relancee" | "entretien" | "refus" | "ecartee" | "pas_interessant";
 
 export type Offre = {
   id: string;

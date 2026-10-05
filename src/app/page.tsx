@@ -3,6 +3,7 @@ import { ajouterOffre, lancerRecuperation } from "@/app/actions";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
 import { CarteEvenement } from "@/components/CarteEvenement";
 import { CarteOffre } from "@/components/CarteOffre";
+import { Masquable } from "@/components/Masquable";
 import { db, type Etape, type Evenement, type Offre } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,7 @@ const VUES: { id: string; titre: string; etapes: Etape[]; favoris?: true }[] = [
   { id: "favoris", titre: "★ Favoris", etapes: [], favoris: true },
   { id: "postuler", titre: "À postuler", etapes: ["a_postuler"] },
   { id: "suivi", titre: "En cours", etapes: ["postulee", "relancee", "entretien"] },
+  { id: "pas-interessant", titre: "Pas intéressant", etapes: ["pas_interessant"] },
   { id: "archives", titre: "Écartées et refus", etapes: ["ecartee", "refus"] },
 ];
 
@@ -188,7 +190,10 @@ export default async function Page({ searchParams }: PageProps<"/">) {
           <ul className="liste">
             {(offres as Offre[] | null)?.map((o) => (
               <li key={o.id}>
-                <CarteOffre offre={o} />
+                {/* Dans Favoris, changer d'étape ne fait pas sortir l'offre de l'onglet : on ne la cache pas. */}
+                <Masquable actif={!vue.favoris}>
+                  <CarteOffre offre={o} />
+                </Masquable>
               </li>
             ))}
           </ul>

@@ -1,6 +1,7 @@
-import { changerEtape, changerFavori, enregistrerSuivi } from "@/app/actions";
+import { changerFavori, enregistrerSuivi } from "@/app/actions";
 import { BoutonCopier } from "@/components/BoutonCopier";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
+import { BoutonDeplacer } from "@/components/Masquable";
 import type { Etape, Offre } from "@/lib/supabase";
 
 const NOM_SOURCE: Record<Offre["source"], string> = {
@@ -18,6 +19,7 @@ const ETAPES: { id: Etape; titre: string }[] = [
   { id: "relancee", titre: "Relancée" },
   { id: "entretien", titre: "Entretien" },
   { id: "refus", titre: "Refus" },
+  { id: "pas_interessant", titre: "Pas intéressant" },
   { id: "ecartee", titre: "Écartée" },
 ];
 
@@ -27,11 +29,9 @@ const date = (d: string | null) =>
 export function CarteOffre({ offre: o }: { offre: Offre }) {
   const details = [o.entreprise, o.lieu, o.contrat, o.salaire].filter(Boolean).join(" · ");
   const bouton = (etape: Etape, titre: string, style = "secondaire") => (
-    <form action={changerEtape.bind(null, o.id, etape)}>
-      <BoutonEnvoi className={`bouton ${style}`} enCours="…">
-        {titre}
-      </BoutonEnvoi>
-    </form>
+    <BoutonDeplacer id={o.id} etape={etape} className={`bouton ${style}`}>
+      {titre}
+    </BoutonDeplacer>
   );
 
   return (
@@ -70,9 +70,10 @@ export function CarteOffre({ offre: o }: { offre: Offre }) {
           </a>
         )}
         {o.etape === "nouvelle" && bouton("a_postuler", "À postuler", "principal")}
+        {o.etape === "nouvelle" && bouton("pas_interessant", "Pas intéressant")}
         {o.etape === "a_postuler" && bouton("postulee", "J'ai postulé", "principal")}
         {o.etape !== "ecartee" && o.etape !== "refus" && bouton("ecartee", "Écarter")}
-        {(o.etape === "ecartee" || o.etape === "refus") && bouton("nouvelle", "Remettre à trier")}
+        {(o.etape === "ecartee" || o.etape === "refus" || o.etape === "pas_interessant") && bouton("nouvelle", "Remettre à trier")}
       </div>
 
       <details className="plus">
