@@ -2,7 +2,7 @@ import type { NouvelleOffre } from "@/lib/supabase";
 
 // Acteur Apify « All Jobs Scraper » (nomad-agent/all-jobs-scraper) : LinkedIn en direct,
 // Welcome to the Jungle, YC Work at a Startup, Built In, sites remote, etc.
-// Prix : 1,20 $ / 1 000 offres renvoyées. `dedupe` ne renvoie jamais deux fois la même offre.
+// Prix (octobre 2026) : 0,20 $ / 1 000 offres renvoyées + 0,05 $ / 1 000 lancements. `dedupe` ne renvoie jamais deux fois la même offre.
 
 const ACTEUR = "nomad-agent~all-jobs-scraper";
 
@@ -44,8 +44,8 @@ export async function rechercherApify(motsCles: string[]): Promise<NouvelleOffre
       locationTypes: [],
       employmentTypes: [],
       postedWithin: "3d",
-      maxItems: 100,
-      maxItemsPerSource: 40,
+      maxItems: 300,
+      maxItemsPerSource: 80,
       dedupe: { enabled: true, key: "radar-emploi" },
     }),
     cache: "no-store",

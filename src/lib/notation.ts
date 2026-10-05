@@ -5,7 +5,8 @@ import type { Niveau, Offre } from "@/lib/supabase";
 export type Notation = { niveau: Niveau; raison: string; message: string; cv_variante: string };
 
 // Écarte sans appeler l'IA ce qui ne correspond jamais (économise des tokens).
-const EXCLUS = /\b(stage|stagiaire|alternance|alternant|apprenti|apprentissage|intern(ship)?|senior|sr\.?|principal|staff|head of|directeur|director|vp)\b/i;
+// Stages, alternances et freelances ne sont plus exclus : l'IA les garde s'ils collent au profil.
+const EXCLUS = /\b(senior|sr\.?|principal|staff|head of|directeur|director|vp)\b/i;
 
 export function filtreRapide(poste: string): Notation | null {
   const m = poste.match(EXCLUS);
@@ -52,7 +53,7 @@ export async function noterOffre(o: Pick<Offre, "poste" | "entreprise" | "lieu" 
       messages: [
         {
           role: "system",
-          content: `Tu tries des offres d'emploi pour un candidat. Note A (poste idéal), B (ça colle bien) ou X (à écarter), selon ce profil et cette stratégie. Écarte (X) ce qui est clairement hors cible (autre métier, séniorité, lieu). Si l'intitulé fait partie des postes A ou B visés et que le lieu convient, ne l'écarte pas faute de détails : mets au moins B. Les 3 lignes sont à la première personne et n'utilisent que les faits du profil (pas d'outil, de chiffre ou de mission inventés). N'invente aucun fait sur le candidat.\n\n${PROFIL}`,
+          content: `Tu tries des offres d'emploi pour un candidat. Note A (poste idéal), B (ça colle bien) ou X (à écarter), selon ce profil et cette stratégie. Écarte (X) ce qui est clairement hors cible (autre métier, séniorité, lieu).\nTaille d'entreprise : la cible, ce sont les petites structures (startups early-stage, PME, petites agences, moins de 200 personnes environ). Mets X pour les grands groupes, les entreprises du CAC 40 / SBF 120 et leurs filiales, les grands cabinets de conseil et ESN, et les scale-ups très connues qui reçoivent des centaines de candidatures (ex. Pennylane, sunday, Qonto, Alan, Doctolib, BlaBlaCar). Si la taille est inconnue, juge sur le nom et la description, sans écarter par défaut.\nType de contrat : CDI, CDD, freelance, stage et alternance sont tous acceptés. Un stage ou une alternance qui colle très bien au métier visé vaut A ou B comme un CDI ; ne l'écarte pas pour son contrat. Indique le type de contrat dans la raison.\nSi l'intitulé fait partie des postes A ou B visés et que le lieu convient, ne l'écarte pas faute de détails : mets au moins B. Les 3 lignes sont à la première personne et n'utilisent que les faits du profil (pas d'outil, de chiffre ou de mission inventés). N'invente aucun fait sur le candidat.\n\n${PROFIL}`,
         },
         { role: "user", content: offreTexte },
       ],

@@ -14,6 +14,13 @@ export const MOTS_CLES = [
   "consultant IA junior",
   "no-code",
   "Clay",
+  "Growth Marketing",
+  "Growth Hacker",
+  "Marketing Automation",
+  "Sales Ops",
+  "alternance growth",
+  "stage growth automatisation",
+  "alternance automatisation IA",
 ];
 
 // Le vrai profil (salaire, lieu, limites) reste privé : variable PROFIL_CANDIDAT dans .env.local / Vercel.
@@ -28,10 +35,11 @@ Postes visés :
 - A : GTM Engineer, Growth Engineer, Growth Ops, RevOps, AI Automation Engineer.
 - B : chef de projet IA ou digital, consultant IA junior.
 - « Automatisation » veut dire automatisation des processus métier (workflows n8n / Make, CRM, prospection, agents IA), PAS l'automatisation de tests logiciels ni l'automatisme industriel.
-- À écarter : QA, automatisme industriel, DevOps pur, postes de manager, postes seniors, stages, alternances, commerciaux purs.
+- À écarter : QA, automatisme industriel, DevOps pur, postes de manager, postes seniors, commerciaux purs, grands groupes et scale-ups très connues.
+- Stages, alternances et freelances acceptés si le métier colle parfaitement.
 
 Conditions :
-- Lieu : Paris et petite couronne, ou remote / hybride. CDI de préférence.
+- Lieu : Paris et petite couronne, ou remote / hybride. Petites startups et PME. Tous types de contrat.
 `.trim();
 
 export const PROFIL = process.env.PROFIL_CANDIDAT?.trim() || PROFIL_EXEMPLE;
