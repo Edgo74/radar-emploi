@@ -18,7 +18,7 @@ type FtOffre = {
   origineOffre?: { urlOrigine?: string };
 };
 
-async function token() {
+export async function token(scope = "api_offresdemploiv2 o2dsoffre") {
   const id = process.env.FRANCE_TRAVAIL_CLIENT_ID;
   const secret = process.env.FRANCE_TRAVAIL_CLIENT_SECRET;
   if (!id || !secret) throw new Error("FRANCE_TRAVAIL_CLIENT_ID ou FRANCE_TRAVAIL_CLIENT_SECRET manquant");
@@ -29,7 +29,7 @@ async function token() {
       grant_type: "client_credentials",
       client_id: id,
       client_secret: secret,
-      scope: "api_offresdemploiv2 o2dsoffre",
+      scope,
     }),
     cache: "no-store",
   });

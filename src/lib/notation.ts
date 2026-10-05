@@ -64,3 +64,56 @@ export async function noterOffre(o: Pick<Offre, "poste" | "entreprise" | "lieu" 
   const data = (await res.json()) as { choices: { message: { content: string } }[] };
   return JSON.parse(data.choices[0].message.content) as Notation;
 }
+
+// ── Événements France Travail ──────────────────────────────────────────────
+
+export type NotationEvenement = { niveau: Niveau; raison: string };
+
+const SCHEMA_EVENEMENT = {
+  type: "object",
+  additionalProperties: false,
+  required: ["niveau", "raison"],
+  properties: {
+    niveau: { type: "string", enum: ["A", "B", "X"] },
+    raison: { type: "string", description: "1 phrase : pourquoi ce niveau, et ce que le candidat y gagnerait." },
+  },
+} as const;
+
+export async function noterEvenement(e: { titre: string; type: string | null; organisateur: string | null; modalites: string[] | null; description: string | null }): Promise<NotationEvenement> {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) throw new Error("OPENAI_API_KEY manquant");
+
+  const texte = [
+    `Titre : ${e.titre}`,
+    `Type : ${e.type ?? "inconnu"}`,
+    `Organisateur : ${e.organisateur ?? "inconnu"}`,
+    `Modalités : ${e.modalites?.join(", ") || "inconnues"}`,
+    `Description :\n${(e.description ?? "(aucune)").slice(0, 4000)}`,
+  ].join("\n");
+
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
+      messages: [
+        {
+          role: "system",
+          content: `Tu tries des événements emploi France Travail (Île-de-France) pour un candidat. Note :
+- A : POEI ou POEC (formation financée avant embauche) ou recrutement sur un métier du profil (growth, marketing digital, GTM, automatisation, IA appliquée, développement web, sales B2B tech, chef de projet digital) ; ou job dating / forum avec des startups ou entreprises tech qui recrutent ces profils.
+- B : utile mais indirect : rencontre avec des recruteurs tech, présentation d'une formation numérique de niveau bac+3 ou plus, réseau cadres (APEC, NQT) avec un angle numérique.
+- X : tout le reste : autres métiers (industrie, logistique, sécurité, armée, restauration, aide à la personne, BTP…), ateliers génériques (CV, LinkedIn, « l'IA pour chercher un emploi », bureautique, initiation au numérique), création d'entreprise, programmes seniors, événements réservés à un public que le candidat n'est pas.
+Une POEI ou POEC sur un métier du numérique est une vraie piste pour ce candidat.
+
+${PROFIL}`,
+        },
+        { role: "user", content: texte },
+      ],
+      response_format: { type: "json_schema", json_schema: { name: "notation_evenement", strict: true, schema: SCHEMA_EVENEMENT } },
+    }),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`OpenAI : erreur ${res.status}`);
+  const data = (await res.json()) as { choices: { message: { content: string } }[] };
+  return JSON.parse(data.choices[0].message.content) as NotationEvenement;
+}

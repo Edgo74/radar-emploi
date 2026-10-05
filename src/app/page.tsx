@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { ajouterOffre, lancerRecuperation } from "@/app/actions";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
+import { CarteEvenement } from "@/components/CarteEvenement";
 import { CarteOffre } from "@/components/CarteOffre";
-import { db, type Etape, type Offre } from "@/lib/supabase";
+import { db, type Etape, type Evenement, type Offre } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // « Récupérer maintenant » peut prendre quelques minutes
@@ -25,9 +26,21 @@ const SOURCES = [
 
 export default async function Page({ searchParams }: PageProps<"/">) {
   const sp = await searchParams;
+  const enEvenements = sp.vue === "evenements";
   const vue = VUES.find((v) => v.id === sp.vue) ?? VUES[0];
   const source = typeof sp.source === "string" ? sp.source : "";
+  const ecartes = sp.ev === "ecartes";
   const supabase = db();
+  const maintenant = new Date().toISOString();
+
+  // Événements à venir : notés A ou B (pas encore notés inclus), ou écartés selon le filtre.
+  let reqEvenements = supabase
+    .from("evenements")
+    .select("*")
+    .gte("date_evenement", maintenant)
+    .order("date_evenement", { ascending: true })
+    .limit(300);
+  reqEvenements = ecartes ? reqEvenements.eq("statut", "ecarte") : reqEvenements.neq("statut", "ecarte");
 
   let requete = supabase.from("offres").select("*").in("etape", vue.etapes).limit(300);
   if (source) requete = requete.eq("source", source);
@@ -36,10 +49,18 @@ export default async function Page({ searchParams }: PageProps<"/">) {
       ? requete.order("prochaine_date", { ascending: true, nullsFirst: false })
       : requete.order("niveau", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false });
 
-  const [{ data: offres, error }, { data: etapes }, { data: derniere }] = await Promise.all([
-    requete,
+  const [
+    { data: offres, error },
+    { data: etapes },
+    { data: derniere },
+    { data: evenements, error: erreurEvenements },
+    { count: nbEvenements },
+  ] = await Promise.all([
+    enEvenements ? Promise.resolve({ data: [] as Offre[], error: null }) : requete,
     supabase.from("offres").select("etape"),
     supabase.from("recuperations").select("*").order("lancee_le", { ascending: false }).limit(1).maybeSingle(),
+    enEvenements ? reqEvenements : Promise.resolve({ data: [] as Evenement[], error: null }),
+    supabase.from("evenements").select("id", { count: "exact", head: true }).gte("date_evenement", maintenant).neq("statut", "ecarte"),
   ]);
 
   const compte = (v: (typeof VUES)[number]) => etapes?.filter((e) => v.etapes.includes(e.etape)).length ?? 0;
@@ -117,30 +138,59 @@ export default async function Page({ searchParams }: PageProps<"/">) {
 
       <nav className="onglets" aria-label="Étapes">
         {VUES.map((v) => (
-          <Link key={v.id} href={lien({ vue: v.id })} className={v.id === vue.id ? "onglet actif" : "onglet"}>
+          <Link key={v.id} href={lien({ vue: v.id })} className={!enEvenements && v.id === vue.id ? "onglet actif" : "onglet"}>
             {v.titre} <span className="compte">{compte(v)}</span>
           </Link>
         ))}
+        <Link href="/?vue=evenements" className={enEvenements ? "onglet actif" : "onglet"}>
+          Événements <span className="compte">{nbEvenements ?? 0}</span>
+        </Link>
       </nav>
 
-      <div className="filtres">
-        {SOURCES.map((s) => (
-          <Link key={s.id} href={lien({ source: s.id })} className={s.id === source ? "puce active" : "puce"}>
-            {s.titre}
-          </Link>
-        ))}
-      </div>
+      {enEvenements && (
+        <>
+          <div className="filtres">
+            <Link href="/?vue=evenements" className={ecartes ? "puce" : "puce active"}>
+              À venir (A et B)
+            </Link>
+            <Link href="/?vue=evenements&ev=ecartes" className={ecartes ? "puce active" : "puce"}>
+              Écartés
+            </Link>
+          </div>
+          {erreurEvenements && <p className="erreur">Base de données : {erreurEvenements.message}</p>}
+          {evenements?.length === 0 && <p className="vide">Aucun événement pour l&apos;instant. Ils arrivent avec le prochain passage.</p>}
+          <ul className="liste">
+            {(evenements as Evenement[] | null)?.map((e) => (
+              <li key={e.id}>
+                <CarteEvenement evenement={e} />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
-      {error && <p className="erreur">Base de données : {error.message}</p>}
-      {offres?.length === 0 && <p className="vide">Rien ici pour l&apos;instant.</p>}
+      {!enEvenements && (
+        <>
+          <div className="filtres">
+            {SOURCES.map((s) => (
+              <Link key={s.id} href={lien({ source: s.id })} className={s.id === source ? "puce active" : "puce"}>
+                {s.titre}
+              </Link>
+            ))}
+          </div>
 
-      <ul className="liste">
-        {(offres as Offre[] | null)?.map((o) => (
-          <li key={o.id}>
-            <CarteOffre offre={o} />
-          </li>
-        ))}
-      </ul>
+          {error && <p className="erreur">Base de données : {error.message}</p>}
+          {offres?.length === 0 && <p className="vide">Rien ici pour l&apos;instant.</p>}
+
+          <ul className="liste">
+            {(offres as Offre[] | null)?.map((o) => (
+              <li key={o.id}>
+                <CarteOffre offre={o} />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </main>
   );
 }

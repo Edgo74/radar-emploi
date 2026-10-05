@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { noterUne, recupererOffres } from "@/lib/recuperer";
-import { db, dedupKey, type Etape, type Source } from "@/lib/supabase";
+import { db, dedupKey, type Etape, type Source, type StatutEvenement } from "@/lib/supabase";
 
 const texte = (f: FormData, k: string) => {
   const v = String(f.get(k) ?? "").trim();
@@ -58,6 +58,12 @@ export async function enregistrerSuivi(f: FormData) {
       message: texte(f, "message"),
     })
     .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/");
+}
+
+export async function changerStatutEvenement(id: number, statut: StatutEvenement) {
+  const { error } = await db().from("evenements").update({ statut }).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/");
 }

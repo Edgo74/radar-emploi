@@ -53,3 +53,24 @@ export function dedupKey(entreprise: string | null | undefined, poste: string) {
   const societe = norm(entreprise ?? "").replace(/\b(sas|sasu|sa|sarl|group|groupe|france)\b/g, "").replace(/\s+/g, " ").trim();
   return `${societe}|${norm(poste)}`;
 }
+
+export type StatutEvenement = "nouveau" | "interesse" | "inscrit" | "ecarte";
+
+export type Evenement = {
+  id: number;
+  titre: string;
+  type: string | null;
+  date_evenement: string | null;
+  ville: string | null;
+  code_postal: string | null;
+  modalites: string[] | null;
+  organisateur: string | null;
+  url: string | null;
+  description: string | null;
+  formation: boolean;
+  niveau: Niveau | null;
+  raison: string | null;
+  note_le: string | null;
+  statut: StatutEvenement;
+  created_at: string;
+};

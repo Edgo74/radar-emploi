@@ -1,8 +1,9 @@
 import "server-only";
 import { MOTS_CLES } from "@/lib/profil";
-import { noterOffre } from "@/lib/notation";
+import { noterEvenement, noterOffre } from "@/lib/notation";
 import { rechercherAdzuna } from "@/lib/sources/adzuna";
 import { rechercherApify } from "@/lib/sources/apify";
+import { rechercherEvenements } from "@/lib/sources/evenements";
 import { rechercherFranceTravail } from "@/lib/sources/france-travail";
 import { db, dedupKey, type NouvelleOffre, type Offre } from "@/lib/supabase";
 
@@ -21,6 +22,7 @@ export async function recupererOffres(declencheur: "cron" | "manuel") {
     { nom: "France Travail", run: () => rechercherFranceTravail(MOTS_CLES) },
     { nom: "Adzuna", run: () => rechercherAdzuna(MOTS_CLES) },
   ];
+  const evenementsPromesse = Promise.allSettled([rechercherEvenements()]); // en parallèle, rangés à part (table evenements)
   const resultats = await Promise.allSettled(sources.map((s) => s.run()));
   resultats.forEach((r, i) => {
     if (r.status === "fulfilled") trouvees.push(...r.value);
@@ -49,6 +51,7 @@ export async function recupererOffres(declencheur: "cron" | "manuel") {
     if (error) erreurs.push(`Insertion : ${error.message}`);
   }
 
+  const evenements = await enregistrerEvenements(evenementsPromesse, erreurs, debut + 150_000);
   const notees = await noterEnAttente(erreurs, debut + DUREE_MAX_MS);
 
   await supabase.from("recuperations").insert({
@@ -58,7 +61,48 @@ export async function recupererOffres(declencheur: "cron" | "manuel") {
     notees,
     erreurs: erreurs.length ? erreurs.join("\n") : null,
   });
-  return { trouvees: trouvees.length, nouvelles: aInserer.length, notees, erreurs };
+  return { trouvees: trouvees.length, nouvelles: aInserer.length, notees, evenements, erreurs };
+}
+
+// Insère les nouveaux événements présélectionnés puis note ceux qui ne le sont pas, jusqu'à `finAvant`.
+async function enregistrerEvenements(promesse: Promise<PromiseSettledResult<Awaited<ReturnType<typeof rechercherEvenements>>>[]>, erreurs: string[], finAvant: number) {
+  const supabase = db();
+  let nouveaux = 0;
+  const [r] = await promesse;
+  if (r.status === "rejected") {
+    erreurs.push(`Événements France Travail : ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`);
+  } else if (r.value.length) {
+    const { data, error } = await supabase.from("evenements").upsert(r.value, { onConflict: "id", ignoreDuplicates: true }).select("id");
+    if (error) erreurs.push(`Événements (insertion) : ${error.message}`);
+    nouveaux = data?.length ?? 0;
+  }
+
+  const { data: attente } = await supabase
+    .from("evenements")
+    .select("id, titre, type, organisateur, modalites, description")
+    .is("niveau", null)
+    .gte("date_evenement", new Date().toISOString())
+    .order("date_evenement", { ascending: true })
+    .limit(300);
+  const file = [...(attente ?? [])];
+  let notes = 0;
+  await Promise.all(
+    Array.from({ length: 6 }, async () => {
+      for (let e = file.shift(); e && Date.now() < finAvant; e = file.shift()) {
+        try {
+          const n = await noterEvenement(e);
+          await supabase
+            .from("evenements")
+            .update({ ...n, note_le: new Date().toISOString(), ...(n.niveau === "X" ? { statut: "ecarte" } : {}) })
+            .eq("id", e.id);
+          notes++;
+        } catch (err) {
+          erreurs.push(`Notation événement « ${e.titre} » : ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+    }),
+  );
+  return { nouveaux, notes };
 }
 
 export async function noterEnAttente(erreurs: string[] = [], finAvant = Date.now() + DUREE_MAX_MS) {
