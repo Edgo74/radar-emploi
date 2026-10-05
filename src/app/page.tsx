@@ -8,8 +8,10 @@ import { db, type Etape, type Evenement, type Offre } from "@/lib/supabase";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // « Récupérer maintenant » peut prendre quelques minutes
 
-const VUES: { id: string; titre: string; etapes: Etape[] }[] = [
+// L'onglet Favoris montre les offres étoilées quelle que soit leur étape.
+const VUES: { id: string; titre: string; etapes: Etape[]; favoris?: true }[] = [
   { id: "trier", titre: "À trier", etapes: ["nouvelle"] },
+  { id: "favoris", titre: "★ Favoris", etapes: [], favoris: true },
   { id: "postuler", titre: "À postuler", etapes: ["a_postuler"] },
   { id: "suivi", titre: "En cours", etapes: ["postulee", "relancee", "entretien"] },
   { id: "archives", titre: "Écartées et refus", etapes: ["ecartee", "refus"] },
@@ -42,7 +44,8 @@ export default async function Page({ searchParams }: PageProps<"/">) {
     .limit(300);
   reqEvenements = ecartes ? reqEvenements.eq("statut", "ecarte") : reqEvenements.neq("statut", "ecarte");
 
-  let requete = supabase.from("offres").select("*").in("etape", vue.etapes).limit(300);
+  let requete = supabase.from("offres").select("*").limit(300);
+  requete = vue.favoris ? requete.eq("favori", true) : requete.in("etape", vue.etapes);
   if (source) requete = requete.eq("source", source);
   requete =
     vue.id === "suivi"
@@ -57,13 +60,13 @@ export default async function Page({ searchParams }: PageProps<"/">) {
     { count: nbEvenements },
   ] = await Promise.all([
     enEvenements ? Promise.resolve({ data: [] as Offre[], error: null }) : requete,
-    supabase.from("offres").select("etape"),
+    supabase.from("offres").select("etape, favori"),
     supabase.from("recuperations").select("*").order("lancee_le", { ascending: false }).limit(1).maybeSingle(),
     enEvenements ? reqEvenements : Promise.resolve({ data: [] as Evenement[], error: null }),
     supabase.from("evenements").select("id", { count: "exact", head: true }).gte("date_evenement", maintenant).neq("statut", "ecarte"),
   ]);
 
-  const compte = (v: (typeof VUES)[number]) => etapes?.filter((e) => v.etapes.includes(e.etape)).length ?? 0;
+  const compte = (v: (typeof VUES)[number]) => etapes?.filter((e) => (v.favoris ? e.favori : v.etapes.includes(e.etape))).length ?? 0;
   const lien = (params: Record<string, string>) => {
     const q = new URLSearchParams({ vue: vue.id, source, ...params });
     for (const [k, v] of [...q]) if (!v) q.delete(k);

@@ -313,6 +313,31 @@ textarea {
 .source {
   font-family: var(--font-mono), monospace;
 }
+.etoile {
+  border: 0;
+  background: none;
+  padding: 0 2px;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--doux);
+  cursor: pointer;
+}
+.etoile:hover,
+.etoile.active {
+  color: var(--b);
+}
+.etoile:focus-visible {
+  outline: 2px solid var(--accent);
+  border-radius: 4px;
+}
+.lecteur {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 .raison,
 .prochaine {
   margin: 0;

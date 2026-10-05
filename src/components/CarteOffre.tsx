@@ -1,4 +1,4 @@
-import { changerEtape, enregistrerSuivi } from "@/app/actions";
+import { changerEtape, changerFavori, enregistrerSuivi } from "@/app/actions";
 import { BoutonCopier } from "@/components/BoutonCopier";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
 import type { Etape, Offre } from "@/lib/supabase";
@@ -45,6 +45,12 @@ export function CarteOffre({ offre: o }: { offre: Offre }) {
           {details && <p className="meta">{details}</p>}
         </div>
         <div className="carte-coin">
+          <form action={changerFavori.bind(null, o.id, !o.favori)}>
+            <BoutonEnvoi className={o.favori ? "etoile active" : "etoile"} enCours="…">
+              <span aria-hidden>{o.favori ? "★" : "☆"}</span>
+              <span className="lecteur">{o.favori ? "Retirer des favoris" : "Mettre en favori"}</span>
+            </BoutonEnvoi>
+          </form>
           <span className="source">{o.plateforme && o.source === "autre" ? o.plateforme : NOM_SOURCE[o.source]}</span>
           <span className="date">{date(o.publiee_le ?? o.created_at)}</span>
         </div>

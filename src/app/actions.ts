@@ -43,6 +43,12 @@ export async function changerEtape(id: string, etape: Etape) {
   revalidatePath("/");
 }
 
+export async function changerFavori(id: string, favori: boolean) {
+  const { error } = await db().from("offres").update({ favori }).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/");
+}
+
 export async function enregistrerSuivi(f: FormData) {
   const id = texte(f, "id");
   if (!id) return;

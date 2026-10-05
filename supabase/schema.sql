@@ -32,6 +32,7 @@ create table if not exists public.offres (
   prochaine_action text,
   prochaine_date   date,
   notes            text,
+  favori           boolean not null default false, -- gardée pour plus tard (onglet Favoris)
 
   created_at       timestamptz not null default now(),
   updated_at       timestamptz not null default now(),

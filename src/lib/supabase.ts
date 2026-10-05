@@ -39,6 +39,7 @@ export type Offre = {
   prochaine_action: string | null;
   prochaine_date: string | null;
   notes: string | null;
+  favori: boolean;
   created_at: string;
 };
 
