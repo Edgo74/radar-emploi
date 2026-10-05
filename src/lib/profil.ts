@@ -35,11 +35,11 @@ Postes visés :
 - A : GTM Engineer, Growth Engineer, Growth Ops, RevOps, AI Automation Engineer.
 - B : chef de projet IA ou digital, consultant IA junior.
 - « Automatisation » veut dire automatisation des processus métier (workflows n8n / Make, CRM, prospection, agents IA), PAS l'automatisation de tests logiciels ni l'automatisme industriel.
-- À écarter : QA, automatisme industriel, DevOps pur, postes de manager, postes seniors, commerciaux purs, grands groupes et scale-ups très connues.
+- À écarter : QA, automatisme industriel, DevOps pur, postes de manager, postes seniors, commerciaux purs.
 - Stages, alternances et freelances acceptés si le métier colle parfaitement.
 
 Conditions :
-- Lieu : Paris et petite couronne, ou remote / hybride. Petites startups et PME. Tous types de contrat.
+- Lieu : Paris et petite couronne, ou remote / hybride. Toutes tailles d'entreprise. Tous types de contrat.
 `.trim();
 
 export const PROFIL = process.env.PROFIL_CANDIDAT?.trim() || PROFIL_EXEMPLE;

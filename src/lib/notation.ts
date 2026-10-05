@@ -20,7 +20,7 @@ const SCHEMA = {
   required: ["niveau", "raison", "message", "cv_variante"],
   properties: {
     niveau: { type: "string", enum: ["A", "B", "X"] },
-    raison: { type: "string", description: "1 à 2 phrases : pourquoi ce niveau (poste, lieu, salaire, séniorité)." },
+    raison: { type: "string", description: "1 à 2 phrases : ce que le candidat maîtrise déjà pour ce poste, ce qui lui manque, et le type de contrat." },
     message: {
       type: "string",
       description: "Si A ou B : 3 lignes de candidature en français, ton direct, à la première personne, qui relient un projet réel du candidat au besoin de l'offre. Pas de formule creuse. Si X : chaîne vide.",
@@ -107,7 +107,16 @@ export async function noterOffre(o: Pick<Offre, "poste" | "entreprise" | "lieu" 
       [
         {
           role: "system",
-          content: `Tu tries des offres d'emploi pour un candidat. Note A (poste idéal), B (ça colle bien) ou X (à écarter), selon ce profil et cette stratégie. Écarte (X) ce qui est clairement hors cible (autre métier, séniorité, lieu).\nTaille d'entreprise : la cible, ce sont les petites structures (startups early-stage, PME, petites agences, moins de 200 personnes environ). Mets X pour les grands groupes, les entreprises du CAC 40 / SBF 120 et leurs filiales, les grands cabinets de conseil et ESN, et les scale-ups très connues qui reçoivent des centaines de candidatures (ex. Pennylane, sunday, Qonto, Alan, Doctolib, BlaBlaCar). Si la taille est inconnue, juge sur le nom et la description, sans écarter par défaut.\nType de contrat : CDI, CDD, freelance, stage et alternance sont tous acceptés. Un stage ou une alternance qui colle très bien au métier visé vaut A ou B comme un CDI ; ne l'écarte pas pour son contrat. Indique le type de contrat dans la raison.\nSi l'intitulé fait partie des postes A ou B visés et que le lieu convient, ne l'écarte pas faute de détails : mets au moins B. Les 3 lignes sont à la première personne et n'utilisent que les faits du profil (pas d'outil, de chiffre ou de mission inventés). N'invente aucun fait sur le candidat.\n\n${PROFIL}`,
+          content: `Tu tries des offres d'emploi pour un candidat. La seule question : en lisant son CV, l'employeur le prendrait-il ? Note selon l'adéquation entre les compétences et l'expérience réelles du candidat (profil ci-dessous) et ce que l'offre demande.
+- A : le candidat maîtrise presque tout ce que le poste demande, il pourrait même être un peu surqualifié (tâches, outils, niveau, salaire). Au plus un petit manque facile à combler.
+- B : il maîtrise l'essentiel ; il manque une ou deux choses (un outil précis, un peu d'anglais, une partie du métier).
+- X : l'écart est trop grand : autre métier, compétences centrales qu'il n'a pas, ou lieu impossible.
+Expérience : si l'offre exige explicitement 3 ans ou plus d'expérience sur le poste, c'est au mieux B (et X si 5 ans ou plus), même si les tâches collent.
+La taille ou la notoriété de l'entreprise ne compte PAS : un grand groupe qui colle vaut A comme une startup.
+Type de contrat : CDI, CDD, freelance, stage et alternance sont tous acceptés. Un stage ou une alternance qui colle vaut A ou B ; une exigence de statut étudiant ou d'école n'est pas une raison d'écarter (signale-la dans la raison).
+Si l'intitulé fait partie des postes A ou B visés et que le lieu convient, ne l'écarte pas faute de détails : mets au moins B. Les 3 lignes sont à la première personne et n'utilisent que les faits du profil (pas d'outil, de chiffre ou de mission inventés). N'invente aucun fait sur le candidat.
+
+${PROFIL}`,
         },
         { role: "user", content: offreTexte },
       ],
