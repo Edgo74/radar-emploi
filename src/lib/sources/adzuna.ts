@@ -18,7 +18,17 @@ type AdzunaOffre = {
 
 const propre = (s: string) => s.replace(/<\/?strong>/g, "");
 
-export async function rechercherAdzuna(motsCles: string[], joursMax = 3): Promise<NouvelleOffre[]> {
+// Adzuna renvoie parfois un 503 passager : on réessaie deux fois, puis on saute ce mot-clé
+// (noté dans `erreurs`) sans perdre les offres des autres.
+async function chercher(url: string) {
+  for (let essai = 0; ; essai++) {
+    const res = await fetch(url, { cache: "no-store" });
+    if (res.ok || essai >= 2 || (res.status < 500 && res.status !== 429)) return res;
+    await new Promise((r) => setTimeout(r, 2000 * (essai + 1)));
+  }
+}
+
+export async function rechercherAdzuna(motsCles: string[], erreurs: string[] = [], joursMax = 3): Promise<NouvelleOffre[]> {
   const appId = process.env.ADZUNA_APP_ID;
   const appKey = process.env.ADZUNA_APP_KEY;
   if (!appId || !appKey) throw new Error("ADZUNA_APP_ID ou ADZUNA_APP_KEY manquant");
@@ -33,8 +43,11 @@ export async function rechercherAdzuna(motsCles: string[], joursMax = 3): Promis
       results_per_page: "50",
       sort_by: "date",
     });
-    const res = await fetch(`https://api.adzuna.com/v1/api/jobs/fr/search/1?${params}`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`« ${motCle} » : erreur ${res.status}`);
+    const res = await chercher(`https://api.adzuna.com/v1/api/jobs/fr/search/1?${params}`);
+    if (!res.ok) {
+      erreurs.push(`Adzuna : « ${motCle} » sauté (erreur ${res.status}), les autres mots-clés sont passés.`);
+      continue;
+    }
     const { results = [] } = (await res.json()) as { results?: AdzunaOffre[] };
 
     for (const o of results) {

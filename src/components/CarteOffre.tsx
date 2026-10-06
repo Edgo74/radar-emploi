@@ -26,7 +26,7 @@ const ETAPES: { id: Etape; titre: string }[] = [
 const date = (d: string | null) =>
   d ? new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" }) : null;
 
-export function CarteOffre({ offre: o }: { offre: Offre }) {
+export function CarteOffre({ offre: o, nouvelle = false }: { offre: Offre; nouvelle?: boolean }) {
   const details = [o.entreprise, o.lieu, o.contrat, o.salaire].filter(Boolean).join(" · ");
   const bouton = (etape: Etape, titre: string, style = "secondaire") => (
     <BoutonDeplacer id={o.id} etape={etape} className={`bouton ${style}`}>
@@ -51,6 +51,7 @@ export function CarteOffre({ offre: o }: { offre: Offre }) {
               <span className="lecteur">{o.favori ? "Retirer des favoris" : "Mettre en favori"}</span>
             </BoutonEnvoi>
           </form>
+          {nouvelle && <span className="nouvelle">Nouvelle</span>}
           <span className="source">{o.plateforme && o.source === "autre" ? o.plateforme : NOM_SOURCE[o.source]}</span>
           <span className="date">{date(o.publiee_le ?? o.created_at)}</span>
         </div>

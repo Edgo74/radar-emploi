@@ -20,7 +20,7 @@ export async function recupererOffres(declencheur: "cron" | "manuel") {
   const sources = [
     { nom: "Apify", run: () => rechercherApify(MOTS_CLES) },
     { nom: "France Travail", run: () => rechercherFranceTravail(MOTS_CLES) },
-    { nom: "Adzuna", run: () => rechercherAdzuna(MOTS_CLES) },
+    { nom: "Adzuna", run: () => rechercherAdzuna(MOTS_CLES, erreurs) },
   ];
   const evenementsPromesse = Promise.allSettled([rechercherEvenements()]); // en parallèle, rangés à part (table evenements)
   const resultats = await Promise.allSettled(sources.map((s) => s.run()));

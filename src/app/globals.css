@@ -313,6 +313,18 @@ textarea {
 .source {
   font-family: var(--font-mono), monospace;
 }
+.nouvelle {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--a-fond);
+  color: var(--a);
+  font-weight: 600;
+}
+.filtre-titre {
+  align-self: center;
+  font-size: 13px;
+  color: var(--doux);
+}
 .etoile {
   border: 0;
   background: none;

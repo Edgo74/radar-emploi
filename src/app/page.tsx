@@ -19,6 +19,14 @@ const VUES: { id: string; titre: string; etapes: Etape[]; favoris?: true }[] = [
   { id: "archives", titre: "Écartées et refus", etapes: ["ecartee", "refus"] },
 ];
 
+// « Dernier passage » = ajoutées depuis le passage précédent, donc par le plus récent.
+const PERIODES = [
+  { id: "", titre: "Toutes" },
+  { id: "passage", titre: "Dernier passage" },
+  { id: "24h", titre: "24 h" },
+  { id: "7j", titre: "7 jours" },
+];
+
 const SOURCES = [
   { id: "", titre: "Toutes sources" },
   { id: "france_travail", titre: "France Travail" },
@@ -33,6 +41,7 @@ export default async function Page({ searchParams }: PageProps<"/">) {
   const enEvenements = sp.vue === "evenements";
   const vue = VUES.find((v) => v.id === sp.vue) ?? VUES[0];
   const source = typeof sp.source === "string" ? sp.source : "";
+  const depuis = typeof sp.depuis === "string" ? sp.depuis : "";
   const ecartes = sp.ev === "ecartes";
   const supabase = db();
   const maintenant = new Date().toISOString();
@@ -46,31 +55,44 @@ export default async function Page({ searchParams }: PageProps<"/">) {
     .limit(300);
   reqEvenements = ecartes ? reqEvenements.eq("statut", "ecarte") : reqEvenements.neq("statut", "ecarte");
 
+  const { data: passages } = await supabase.from("recuperations").select("*").order("lancee_le", { ascending: false }).limit(2);
+  const derniere = passages?.[0] ?? null;
+  // Les offres d'un passage sont ajoutées avant que la ligne du passage soit écrite :
+  // celles du dernier passage ont donc été créées après la ligne du passage précédent.
+  const debutDernier = passages?.[1]?.lancee_le ?? null;
+  const seuil =
+    depuis === "passage" ? debutDernier
+    : depuis === "24h" ? new Date(new Date(maintenant).getTime() - 86_400_000).toISOString()
+    : depuis === "7j" ? new Date(new Date(maintenant).getTime() - 7 * 86_400_000).toISOString()
+    : null;
+
   let requete = supabase.from("offres").select("*").limit(300);
   requete = vue.favoris ? requete.eq("favori", true) : requete.in("etape", vue.etapes);
   if (source) requete = requete.eq("source", source);
+  if (seuil) requete = requete.gt("created_at", seuil);
   requete =
     vue.id === "suivi"
       ? requete.order("prochaine_date", { ascending: true, nullsFirst: false })
       : requete.order("niveau", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false });
+  // Des dizaines d'offres partagent la même heure d'ajout (insérées d'un bloc) : l'id départage,
+  // sinon l'ordre change à chaque rechargement.
+  requete = requete.order("id", { ascending: true });
 
   const [
     { data: offres, error },
     { data: etapes },
-    { data: derniere },
     { data: evenements, error: erreurEvenements },
     { count: nbEvenements },
   ] = await Promise.all([
     enEvenements ? Promise.resolve({ data: [] as Offre[], error: null }) : requete,
     supabase.from("offres").select("etape, favori"),
-    supabase.from("recuperations").select("*").order("lancee_le", { ascending: false }).limit(1).maybeSingle(),
     enEvenements ? reqEvenements : Promise.resolve({ data: [] as Evenement[], error: null }),
     supabase.from("evenements").select("id", { count: "exact", head: true }).gte("date_evenement", maintenant).neq("statut", "ecarte"),
   ]);
 
   const compte = (v: (typeof VUES)[number]) => etapes?.filter((e) => (v.favoris ? e.favori : v.etapes.includes(e.etape))).length ?? 0;
   const lien = (params: Record<string, string>) => {
-    const q = new URLSearchParams({ vue: vue.id, source, ...params });
+    const q = new URLSearchParams({ vue: vue.id, source, depuis, ...params });
     for (const [k, v] of [...q]) if (!v) q.delete(k);
     return `/?${q}`;
   };
@@ -177,6 +199,14 @@ export default async function Page({ searchParams }: PageProps<"/">) {
       {!enEvenements && (
         <>
           <div className="filtres">
+            <span className="filtre-titre">Ajoutées</span>
+            {PERIODES.map((p) => (
+              <Link key={p.id} href={lien({ depuis: p.id })} className={p.id === depuis ? "puce active" : "puce"}>
+                {p.titre}
+              </Link>
+            ))}
+          </div>
+          <div className="filtres">
             {SOURCES.map((s) => (
               <Link key={s.id} href={lien({ source: s.id })} className={s.id === source ? "puce active" : "puce"}>
                 {s.titre}
@@ -192,7 +222,7 @@ export default async function Page({ searchParams }: PageProps<"/">) {
               <li key={o.id}>
                 {/* Dans Favoris, changer d'étape ne fait pas sortir l'offre de l'onglet : on ne la cache pas. */}
                 <Masquable actif={!vue.favoris}>
-                  <CarteOffre offre={o} />
+                  <CarteOffre offre={o} nouvelle={!!debutDernier && o.created_at > debutDernier} />
                 </Masquable>
               </li>
             ))}
