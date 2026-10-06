@@ -7,7 +7,7 @@ const quand = (d: string | null) =>
     ? new Date(d).toLocaleString("fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" })
     : null;
 
-export function CarteEvenement({ evenement: e }: { evenement: Evenement }) {
+export function CarteEvenement({ evenement: e, nouveau = false }: { evenement: Evenement; nouveau?: boolean }) {
   const details = [quand(e.date_evenement), e.ville && `${e.ville}${e.code_postal ? ` (${e.code_postal.slice(0, 2)})` : ""}`, e.modalites?.join(", "), e.organisateur]
     .filter(Boolean)
     .join(" · ");
@@ -30,6 +30,7 @@ export function CarteEvenement({ evenement: e }: { evenement: Evenement }) {
           {details && <p className="meta">{details}</p>}
         </div>
         <div className="carte-coin">
+          {nouveau && <span className="nouvelle">Nouveau</span>}
           <span className="source">{e.formation ? "POEI / POEC" : e.type}</span>
           {e.formation && <span className="date">{e.type}</span>}
         </div>

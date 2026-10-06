@@ -189,7 +189,7 @@ export default async function Page({ searchParams }: PageProps<"/">) {
           <ul className="liste">
             {(evenements as Evenement[] | null)?.map((e) => (
               <li key={e.id}>
-                <CarteEvenement evenement={e} />
+                <CarteEvenement evenement={e} nouveau={!!debutDernier && e.created_at > debutDernier} />
               </li>
             ))}
           </ul>
