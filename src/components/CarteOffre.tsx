@@ -72,7 +72,7 @@ export function CarteOffre({ offre: o, nouvelle = false }: { offre: Offre; nouve
         )}
         {o.etape === "nouvelle" && bouton("a_postuler", "À postuler", "principal")}
         {o.etape === "nouvelle" && bouton("pas_interessant", "Pas intéressant")}
-        {o.etape === "a_postuler" && bouton("postulee", "J'ai postulé", "principal")}
+        {(o.etape === "nouvelle" || o.etape === "a_postuler") && bouton("postulee", "J'ai postulé", o.etape === "a_postuler" ? "principal" : "secondaire")}
         {o.etape !== "ecartee" && o.etape !== "refus" && bouton("ecartee", "Écarter")}
         {(o.etape === "ecartee" || o.etape === "refus" || o.etape === "pas_interessant") && bouton("nouvelle", "Remettre à trier")}
       </div>
