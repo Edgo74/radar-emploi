@@ -109,11 +109,16 @@ export default async function Page({ searchParams }: PageProps<"/">) {
           </p>
           {derniere?.erreurs && <p className="erreur">{derniere.erreurs}</p>}
         </div>
-        <form action={lancerRecuperation}>
-          <BoutonEnvoi className="bouton secondaire" enCours="Récupération…">
-            Récupérer maintenant
-          </BoutonEnvoi>
-        </form>
+        <div className="actions">
+          <Link href="/etiquetage" className="bouton discret">
+            Jeu de test
+          </Link>
+          <form action={lancerRecuperation}>
+            <BoutonEnvoi className="bouton secondaire" enCours="Récupération…">
+              Récupérer maintenant
+            </BoutonEnvoi>
+          </form>
+        </div>
       </header>
 
       <details className="ajout">
