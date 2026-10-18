@@ -1,6 +1,8 @@
 // Mots-clés de recherche et profil du candidat pour la notation IA.
 
-export const MOTS_CLES = [
+// Mots-clés par défaut. Une autre copie du Radar (un autre candidat) les remplace
+// par la variable MOTS_CLES : un mot-clé par ligne, ou séparés par « ; ».
+const MOTS_CLES_DEFAUT = [
   "GTM Engineer",
   "Growth Engineer",
   "Growth Ops",
@@ -22,6 +24,13 @@ export const MOTS_CLES = [
   "stage growth automatisation",
   "alternance automatisation IA",
 ];
+
+const motsClesEnv = (process.env.MOTS_CLES ?? "")
+  .split(/[\n;]/)
+  .map((m) => m.trim())
+  .filter(Boolean);
+
+export const MOTS_CLES = motsClesEnv.length ? motsClesEnv : MOTS_CLES_DEFAUT;
 
 // Le vrai profil (salaire, lieu, limites) reste privé : variable PROFIL_CANDIDAT dans .env.local / Vercel.
 // Ce texte d'exemple sert seulement si elle est absente.

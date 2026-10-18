@@ -6,6 +6,11 @@ import type { NouvelleOffre } from "@/lib/supabase";
 
 const ACTEUR = "nomad-agent~all-jobs-scraper";
 
+// Deux copies du Radar sur le même compte Apify doivent avoir des clés différentes :
+// avec la même clé, l'une ne recevrait jamais les offres déjà renvoyées à l'autre.
+const CLE_DEDUPE = process.env.APIFY_DEDUPE_KEY?.trim() || "radar-emploi";
+const MAX_OFFRES = Number(process.env.APIFY_MAX_ITEMS) || 300;
+
 type ApifyLigne = {
   source: string;
   id: string;
@@ -44,9 +49,9 @@ export async function rechercherApify(motsCles: string[]): Promise<NouvelleOffre
       locationTypes: [],
       employmentTypes: [],
       postedWithin: "3d",
-      maxItems: 300,
+      maxItems: MAX_OFFRES,
       maxItemsPerSource: 80,
-      dedupe: { enabled: true, key: "radar-emploi" },
+      dedupe: { enabled: true, key: CLE_DEDUPE },
     }),
     cache: "no-store",
   });
