@@ -2,11 +2,14 @@ import "server-only";
 import { createClient } from "@supabase/supabase-js";
 
 // Client serveur uniquement : la clé service_role ne doit jamais partir au navigateur.
+// SUPABASE_SCHEMA : une 2e copie du Radar peut partager la même base avec ses propres tables
+// dans un autre schéma (ex. « raoul »), à ajouter dans Settings → Data API → Exposed schemas.
 export function db() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) throw new Error("SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY manquant dans .env.local");
-  return createClient(url, key, { auth: { persistSession: false } });
+  const schema = process.env.SUPABASE_SCHEMA?.trim() || "public";
+  return createClient(url, key, { auth: { persistSession: false }, db: { schema } });
 }
 
 export type Source = "france_travail" | "adzuna" | "linkedin" | "wttj" | "autre";
