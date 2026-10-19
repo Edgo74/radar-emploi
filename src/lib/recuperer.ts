@@ -1,10 +1,11 @@
 import "server-only";
-import { MOTS_CLES } from "@/lib/profil";
+import { MOTS_CLES, RECHERCHES_LINKEDIN } from "@/lib/profil";
 import { LimiteOpenAI, noterEvenement, noterOffre } from "@/lib/notation";
 import { rechercherAdzuna } from "@/lib/sources/adzuna";
 import { rechercherApify } from "@/lib/sources/apify";
 import { rechercherEvenements } from "@/lib/sources/evenements";
 import { rechercherFranceTravail } from "@/lib/sources/france-travail";
+import { rechercherLinkedIn } from "@/lib/sources/linkedin";
 import { db, dedupKey, type NouvelleOffre, type Offre } from "@/lib/supabase";
 
 const LOT = 60;
@@ -16,8 +17,9 @@ export async function recupererOffres(declencheur: "cron" | "manuel") {
   const erreurs: string[] = [];
   const trouvees: NouvelleOffre[] = [];
 
-  // Apify en premier : en cas de doublon entre sources, sa version (description complète) est gardée.
+  // LinkedIn et Apify en premier : en cas de doublon entre sources, leur version (description complète) est gardée.
   const sources = [
+    { nom: "LinkedIn", run: () => rechercherLinkedIn(RECHERCHES_LINKEDIN, erreurs) },
     { nom: "Apify", run: () => rechercherApify(MOTS_CLES) },
     { nom: "France Travail", run: () => rechercherFranceTravail(MOTS_CLES) },
     { nom: "Adzuna", run: () => rechercherAdzuna(MOTS_CLES, erreurs) },
