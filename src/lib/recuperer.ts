@@ -158,7 +158,11 @@ export async function noterEnAttente(erreurs: string[] = [], finAvant = Date.now
 }
 
 export async function noterUne(o: Pick<Offre, "id" | "poste" | "entreprise" | "lieu" | "contrat" | "salaire" | "description">) {
-  const n = await noterOffre(o);
+  // Postgres refuse le caractère nul (\u0000) et les demi-emojis isolés (« unsupported Unicode escape sequence ») :
+  // on les retire du texte rendu par l'IA avant de l'enregistrer.
+  const n = Object.fromEntries(
+    Object.entries(await noterOffre(o)).map(([k, v]) => [k, typeof v === "string" ? v.replace(/\u0000/g, "").toWellFormed() : v]),
+  ) as Awaited<ReturnType<typeof noterOffre>>;
   const { error } = await db()
     .from("offres")
     .update({ ...n, note_le: new Date().toISOString(), ...(n.niveau === "X" ? { etape: "ecartee" } : {}) })
