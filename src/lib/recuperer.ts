@@ -149,8 +149,11 @@ export async function noterEnAttente(erreurs: string[] = [], finAvant = Date.now
     );
   }
 
-  const { count } = await supabase.from("offres").select("id", { count: "exact", head: true }).is("niveau", null);
-  if (count) erreurs.push(`${count} offres pas encore notées${limite ? " (limite OpenAI atteinte)" : " (temps écoulé)"} : elles le seront au prochain passage.`);
+  // Manquer de temps n'est pas une erreur : le reste est noté au passage suivant. Seul un refus d'OpenAI est signalé.
+  if (limite) {
+    const { count } = await supabase.from("offres").select("id", { count: "exact", head: true }).is("niveau", null);
+    if (count) erreurs.push(`${count} offres pas encore notées (limite OpenAI atteinte) : elles le seront au prochain passage.`);
+  }
   return notees;
 }
 

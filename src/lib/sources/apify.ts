@@ -36,19 +36,26 @@ function source(s: string): NouvelleOffre["source"] {
 }
 
 // L'acteur refuse plus de 20 mots-clés par lancement : au-delà, plusieurs lancements en parallèle.
+// Chaque lot a sa propre clé `dedupe` : deux exécutions simultanées sur la même clé, l'acteur tue la seconde
+// (« InventoryScopeBusy », essai du 20/10). Le 1er lot garde la clé d'origine, donc son historique.
 const MAX_REQUETES = 20;
 export const lancementsApify = (motsCles: string[]) => Math.ceil(motsCles.length / MAX_REQUETES);
 
 export async function rechercherApify(motsCles: string[], erreurs: string[] = []): Promise<NouvelleOffre[]> {
   const lots = Array.from({ length: lancementsApify(motsCles) }, (_, i) => motsCles.slice(i * MAX_REQUETES, (i + 1) * MAX_REQUETES));
-  const resultats = await Promise.allSettled(lots.map((lot) => rechercherLot(lot)));
+  const cle = (i: number) => (i === 0 ? CLE_DEDUPE : `${CLE_DEDUPE}-${i + 1}`);
+  const resultats = await Promise.allSettled(lots.map((lot, i) => rechercherLot(lot, cle(i))));
+  // Un lot refusé (clé encore occupée, compte plein…) est relancé une fois, seul, après les autres.
+  for (const [i, r] of resultats.entries()) {
+    if (r.status === "rejected") resultats[i] = await rechercherLot(lots[i], cle(i)).then((value) => ({ status: "fulfilled", value }) as const, (reason) => ({ status: "rejected", reason }) as const);
+  }
   const echecs = resultats.filter((r) => r.status === "rejected");
   if (echecs.length === lots.length) throw echecs[0].reason;
   echecs.forEach((r) => erreurs.push(`Apify (un lot de mots-clés) : ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`));
   return resultats.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
 }
 
-async function rechercherLot(motsCles: string[]): Promise<NouvelleOffre[]> {
+async function rechercherLot(motsCles: string[], cleDedupe: string): Promise<NouvelleOffre[]> {
   const token = process.env.APIFY_TOKEN;
   if (!token) throw new Error("APIFY_TOKEN manquant");
 
@@ -64,7 +71,7 @@ async function rechercherLot(motsCles: string[]): Promise<NouvelleOffre[]> {
       postedWithin: "3d",
       maxItems: MAX_OFFRES,
       maxItemsPerSource: 80,
-      dedupe: { enabled: true, key: CLE_DEDUPE },
+      dedupe: { enabled: true, key: cleDedupe },
     }),
     cache: "no-store",
   });
