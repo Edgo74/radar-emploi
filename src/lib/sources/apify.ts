@@ -35,7 +35,20 @@ function source(s: string): NouvelleOffre["source"] {
   return "autre";
 }
 
-export async function rechercherApify(motsCles: string[]): Promise<NouvelleOffre[]> {
+// L'acteur refuse plus de 20 mots-clés par lancement : au-delà, plusieurs lancements en parallèle.
+const MAX_REQUETES = 20;
+export const lancementsApify = (motsCles: string[]) => Math.ceil(motsCles.length / MAX_REQUETES);
+
+export async function rechercherApify(motsCles: string[], erreurs: string[] = []): Promise<NouvelleOffre[]> {
+  const lots = Array.from({ length: lancementsApify(motsCles) }, (_, i) => motsCles.slice(i * MAX_REQUETES, (i + 1) * MAX_REQUETES));
+  const resultats = await Promise.allSettled(lots.map((lot) => rechercherLot(lot)));
+  const echecs = resultats.filter((r) => r.status === "rejected");
+  if (echecs.length === lots.length) throw echecs[0].reason;
+  echecs.forEach((r) => erreurs.push(`Apify (un lot de mots-clés) : ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`));
+  return resultats.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
+}
+
+async function rechercherLot(motsCles: string[]): Promise<NouvelleOffre[]> {
   const token = process.env.APIFY_TOKEN;
   if (!token) throw new Error("APIFY_TOKEN manquant");
 

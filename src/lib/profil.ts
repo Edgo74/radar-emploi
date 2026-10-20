@@ -61,7 +61,10 @@ const EXCLUS_COMMUNS = ["senior", "sr", "head", "director", "directeur", "direct
 
 // Une autre copie du Radar (variable MOTS_CLES) : une recherche par mot-clé, titre contenant ce mot-clé.
 export const RECHERCHES_LINKEDIN: RechercheLinkedIn[] = (
-  motsClesEnv.length ? motsClesEnv.map((m): RechercheLinkedIn => ({ keywords: m, titres: [m] })) : RECHERCHES_LINKEDIN_DEFAUT
+  motsClesEnv.length
+    ? // « alternance » / « stage » restent dans la recherche, mais pas dans le filtre du titre (rarement écrits dans le titre).
+      motsClesEnv.map((m): RechercheLinkedIn => ({ keywords: m, titres: [m.replace(/\b(alternance|alternant|stage|stagiaire)\b/gi, " ").replace(/\s+/g, " ").trim() || m] }))
+    : RECHERCHES_LINKEDIN_DEFAUT
 ).map((r) => ({ ...r, exclus: [...EXCLUS_COMMUNS, ...(r.exclus ?? [])] }));
 
 // Le vrai profil (salaire, lieu, limites) reste privé : variable PROFIL_CANDIDAT dans .env.local / Vercel.
