@@ -252,6 +252,10 @@ textarea {
   display: grid;
   gap: 10px;
 }
+/* Une carte cachée laisse son <li> vide : sans ça, chaque carte cachée ajoute un écart. */
+.liste > li:empty {
+  display: none;
+}
 .carte {
   background: var(--surface);
   border: 1px solid var(--trait);
