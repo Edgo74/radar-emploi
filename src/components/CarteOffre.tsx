@@ -1,7 +1,7 @@
 import { changerFavori, enregistrerSuivi } from "@/app/actions";
 import { BoutonCopier } from "@/components/BoutonCopier";
 import { BoutonEnvoi } from "@/components/BoutonEnvoi";
-import { BoutonDeplacer } from "@/components/Masquable";
+import { BoutonCacher, BoutonDeplacer } from "@/components/Masquable";
 import type { Etape, Offre } from "@/lib/supabase";
 
 const NOM_SOURCE: Record<Offre["source"], string> = {
@@ -26,7 +26,7 @@ const ETAPES: { id: Etape; titre: string }[] = [
 const date = (d: string | null) =>
   d ? new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" }) : null;
 
-export function CarteOffre({ offre: o, nouvelle = false }: { offre: Offre; nouvelle?: boolean }) {
+export function CarteOffre({ offre: o, nouvelle = false, capture = false }: { offre: Offre; nouvelle?: boolean; capture?: boolean }) {
   const details = [o.entreprise, o.lieu, o.contrat, o.salaire].filter(Boolean).join(" · ");
   const bouton = (etape: Etape, titre: string, style = "secondaire") => (
     <BoutonDeplacer id={o.id} etape={etape} className={`bouton ${style}`}>
@@ -45,6 +45,7 @@ export function CarteOffre({ offre: o, nouvelle = false }: { offre: Offre; nouve
           {details && <p className="meta">{details}</p>}
         </div>
         <div className="carte-coin">
+          {capture && <BoutonCacher />}
           <form action={changerFavori.bind(null, o.id, !o.favori)}>
             <BoutonEnvoi className={o.favori ? "etoile active" : "etoile"} enCours="…">
               <span aria-hidden>{o.favori ? "★" : "☆"}</span>

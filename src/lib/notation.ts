@@ -73,7 +73,8 @@ async function appelerOpenAI<T>(messages: { role: string; content: string }[], n
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: process.env.OPENAI_MODEL || "gpt-5.4-mini",
-        messages,
+        // Une description coupée au milieu d'un emoji laisse un demi-caractère qu'OpenAI refuse (erreur 400).
+        messages: messages.map((m) => ({ ...m, content: m.content.replace(/\u0000/g, "").toWellFormed() })),
         response_format: { type: "json_schema", json_schema: { name: nom, strict: true, schema } },
       }),
       cache: "no-store",
@@ -84,7 +85,7 @@ async function appelerOpenAI<T>(messages: { role: string; content: string }[], n
       await pause(Math.min(Math.max(attente, 1000), 20_000) + Math.random() * 500);
       continue;
     }
-    if (!res.ok) throw new Error(`OpenAI : erreur ${res.status}`);
+    if (!res.ok) throw new Error(`OpenAI : erreur ${res.status} ${(await res.text()).slice(0, 160)}`);
     const data = (await res.json()) as { choices: { message: { content: string } }[] };
     return JSON.parse(data.choices[0].message.content) as T;
   }
