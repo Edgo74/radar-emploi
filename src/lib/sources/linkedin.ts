@@ -77,10 +77,12 @@ export async function rechercherLinkedIn(recherches: RechercheLinkedIn[], erreur
   }
 
   // 3. Lancer les familles qui attendent depuis le plus longtemps, dans les places libres du compte.
-  const enCoursCompte = (
-    await Promise.all(ETATS_EN_COURS.map((s) => api<{ data: { total: number } }>(`actor-runs?status=${s}&limit=1`).then((x) => x.data.total)))
+  // On ne compte que les exécutions LinkedIn : celles d'All Jobs Scraper, lancées en parallèle,
+  // sont déjà dans `placesReservees` (les compter deux fois ne laissait qu'une place par passage).
+  const enCoursLinkedIn = (
+    await Promise.all(ETATS_EN_COURS.map((s) => api<{ data: { total: number } }>(`acts/${ACTEUR}/runs?status=${s}&limit=1`).then((x) => x.data.total)))
   ).reduce((a, b) => a + b, 0);
-  let places = PLACES_COMPTE - enCoursCompte - placesReservees;
+  let places = PLACES_COMPTE - enCoursLinkedIn - placesReservees;
 
   const dernierLancement = new Map<string, number>();
   for (const { run, keywords } of notres) {

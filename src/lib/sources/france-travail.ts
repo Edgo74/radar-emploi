@@ -43,11 +43,22 @@ export async function rechercherFranceTravail(motsCles: string[], joursMax: 1 | 
 
   for (const motCle of motsCles) {
     const params = new URLSearchParams({ motsCles: motCle, publieeDepuis: String(joursMax), range: "0-49" });
-    const res = await fetch(`${SEARCH_URL}?${params}`, {
-      headers: { Authorization: `Bearer ${jeton}`, Accept: "application/json" },
-      cache: "no-store",
-    });
+    let res: Response;
+    // 429 = trop d'appels par seconde : on attend puis on réessaie (3 essais max).
+    for (let essai = 1; ; essai++) {
+      res = await fetch(`${SEARCH_URL}?${params}`, {
+        headers: { Authorization: `Bearer ${jeton}`, Accept: "application/json" },
+        cache: "no-store",
+      });
+      if (res.status !== 429 || essai >= 3) break;
+      await new Promise((r) => setTimeout(r, 1500 * essai));
+    }
     if (res.status === 204) continue; // aucune offre
+    if (res.status === 429) {
+      // Toujours limité après 3 essais : on saute ce mot-clé au lieu de perdre toutes les offres.
+      console.warn(`France Travail « ${motCle} » : erreur 429, mot-clé ignoré`);
+      continue;
+    }
     if (!res.ok) throw new Error(`« ${motCle} » : erreur ${res.status}`);
     const { resultats = [] } = (await res.json()) as { resultats?: FtOffre[] };
 
