@@ -1,5 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "regions": ["cdg1"],
-  "crons": [{ "path": "/api/cron/fetch-offers", "schedule": "0 5 * * *" }]
+  "crons": [
+    { "path": "/api/cron/fetch-offers", "schedule": "0 5 * * *" },
+    { "path": "/api/cron/linkedin?h=8", "schedule": "0 8 * * *" },
+    { "path": "/api/cron/linkedin?h=11", "schedule": "0 11 * * *" },
+    { "path": "/api/cron/linkedin?h=14", "schedule": "0 14 * * *" },
+    { "path": "/api/cron/linkedin?h=17", "schedule": "0 17 * * *" },
+    { "path": "/api/cron/linkedin?h=20", "schedule": "0 20 * * *" }
+  ]
 }

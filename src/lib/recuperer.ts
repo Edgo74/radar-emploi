@@ -12,19 +12,24 @@ const LOT = 60;
 const DUREE_MAX_MS = 270_000; // on s'arrête avant la limite de 300 s d'une fonction Vercel
 
 // Récupère les offres des deux API, ajoute les nouvelles, puis note celles qui ne le sont pas.
-export async function recupererOffres(declencheur: "cron" | "manuel") {
+// `seulementLinkedIn` : passages de la journée (voir vercel.json) qui lisent et relancent seulement les recherches
+// LinkedIn, pour qu'une offre publiée le matin arrive le jour même. Les autres sources gardent un passage par jour.
+export async function recupererOffres(declencheur: "cron" | "manuel", seulementLinkedIn = false) {
   const debut = Date.now();
   const erreurs: string[] = [];
   const trouvees: NouvelleOffre[] = [];
 
   // LinkedIn et Apify en premier : en cas de doublon entre sources, leur version (description complète) est gardée.
-  const sources = [
-    { nom: "LinkedIn", run: () => rechercherLinkedIn(RECHERCHES_LINKEDIN, erreurs, lancementsApify(MOTS_CLES)) },
-    { nom: "Apify", run: () => rechercherApify(MOTS_CLES, erreurs) },
-    { nom: "France Travail", run: () => rechercherFranceTravail(MOTS_CLES) },
-    { nom: "Adzuna", run: () => rechercherAdzuna(MOTS_CLES, erreurs) },
-  ];
-  const evenementsPromesse = Promise.allSettled([rechercherEvenements()]); // en parallèle, rangés à part (table evenements)
+  const sources = seulementLinkedIn
+    ? [{ nom: "LinkedIn", run: () => rechercherLinkedIn(RECHERCHES_LINKEDIN, erreurs) }]
+    : [
+        { nom: "LinkedIn", run: () => rechercherLinkedIn(RECHERCHES_LINKEDIN, erreurs, lancementsApify(MOTS_CLES)) },
+        { nom: "Apify", run: () => rechercherApify(MOTS_CLES, erreurs) },
+        { nom: "France Travail", run: () => rechercherFranceTravail(MOTS_CLES) },
+        { nom: "Adzuna", run: () => rechercherAdzuna(MOTS_CLES, erreurs) },
+      ];
+  // Événements en parallèle, rangés à part (table evenements).
+  const evenementsPromesse = Promise.allSettled([seulementLinkedIn ? Promise.resolve([]) : rechercherEvenements()]);
   const resultats = await Promise.allSettled(sources.map((s) => s.run()));
   resultats.forEach((r, i) => {
     if (r.status === "fulfilled") trouvees.push(...r.value);

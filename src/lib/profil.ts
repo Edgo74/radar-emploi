@@ -49,9 +49,17 @@ const RECHERCHES_LINKEDIN_DEFAUT: RechercheLinkedIn[] = [
   { keywords: "growth", titres: ["growth"] },
   { keywords: "RevOps", titres: ["revops", "rev ops", "revenue operations", "revenue systems", "revenue ops"] },
   { keywords: "Sales Ops", titres: ["sales ops", "sales operations", "marketing ops", "marketing operations", "business ops"] },
-  { keywords: "automatisation", titres: ["automatisation", "automatisations", "automation"], exclus: ["test", "tests", "qa", "industriel", "industrielle", "automate", "automatisme", "électrique", "plc"] },
+  // « ai » / « ia » exclus ici : ces titres sont pris par la recherche « AI automation » (pas payés deux fois).
+  { keywords: "automatisation", titres: ["automatisation", "automatisations", "automation"], exclus: ["ai", "ia", "test", "tests", "qa", "industriel", "industrielle", "automate", "automatisme", "électrique", "plc"] },
   { keywords: "no-code", titres: ["no code", "nocode", "low code", "lowcode", "n8n", "make", "zapier", "clay"] },
-  { keywords: "IA", titres: ["ai builder", "product builder", "chef de projet ia", "cheffe de projet ia", "consultant ia", "consultante ia", "adoption ia", "ia générative", "marketing ia", "ai marketing", "ai go to market", "ai operations", "ai ops"] },
+  // Métiers IA : des recherches précises. Le mot-clé « IA » seul ramenait des milliers d'offres sur LinkedIn,
+  // l'acteur s'arrêtait avant d'atteindre les bonnes (19/11 : « AI Product Builder » chez Leonar ratée).
+  { keywords: "Product Builder", titres: ["product builder"] },
+  { keywords: "AI Builder", titres: ["ai builder", "ia builder"], exclus: ["product"] },
+  { keywords: "chef de projet IA", titres: ["chef de projet ia", "cheffe de projet ia", "chef de projet intelligence artificielle", "ai project manager", "adoption ia", "ai adoption"] },
+  { keywords: "consultant IA", titres: ["consultant ia", "consultante ia", "ai consultant", "consultant intelligence artificielle"] },
+  { keywords: "AI automation", titres: ["ai automation", "automatisation ia", "automation ai", "ai agents", "agents ia", "agent ia", "ai agent"] },
+  { keywords: "IA générative", titres: ["ia générative", "ai operations", "ai ops", "marketing ia", "ai marketing", "ai go to market"], exclus: ["développeur", "developer", "développement", "fullstack", "full stack", "java", "architecte", "cybersécurité"] },
   { keywords: "outbound", titres: ["outbound", "lead generation", "lead gen", "prospection", "demand generation"] },
   { keywords: "marketing automation", titres: ["marketing automation", "crm", "lifecycle"] },
 ];

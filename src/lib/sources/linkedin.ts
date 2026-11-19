@@ -10,7 +10,9 @@ import { db, type NouvelleOffre } from "@/lib/supabase";
 //
 // Une recherche dure 2 à 5 min, plus qu'un passage du Radar (fonction Vercel de 300 s), et le compte Apify gratuit
 // n'accepte que 5 exécutions à la fois. Donc on n'attend pas : chaque passage lit les recherches terminées depuis
-// le passage précédent, puis lance les familles les plus anciennes dans les places libres. Une famille qui n'a pas
+// le passage précédent, puis lance les familles les plus anciennes dans les places libres. Six passages par jour
+// (5 h complet, puis 8 h à 20 h UTC LinkedIn seul, voir vercel.json) : chaque famille tourne environ deux fois par jour
+// et une offre publiée le matin est en base le soir (19/11 : avec un seul passage, 2 à 4 jours de retard). Une famille qui n'a pas
 // tourné depuis plus de 22 h cherche sur 7 jours au lieu de 24 h : rien n'est perdu quand elle attend son tour,
 // et `skipJobId` évite de repayer les offres déjà en base.
 
